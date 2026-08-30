@@ -1,0 +1,9 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Firebase signInWithPopup needs to poll window.closed on the Google OAuth
+  # popup. The default COOP (same-origin) severs that handle and the browser
+  # logs "Cross-Origin-Opener-Policy policy would block the window.closed call",
+  # which can leave the sign-in promise hanging. same-origin-allow-popups keeps
+  # cross-origin isolation for this document while allowing the popup handle.
+  Cross-Origin-Opener-Policy: same-origin-allow-popups

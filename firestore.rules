@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// ============================================================================
+//  AutoServe Dhaka — Firestore security rules
+//  Only authenticated workshop staff may read or write workshop data.
+//  Every document is also shape-validated so malformed writes are rejected.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isNumber(v) {
+      return v is int || v is float;
+    }
+
+    // ---------------------------- users ----------------------------
+    // A staff member may only create/read/update their OWN profile doc.
+    // Profiles are never deleted from the client.
+    match /users/{uid} {
+      allow read: if isSelf(uid);
+
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.email is string
+        && request.resource.data.role in ['staff', 'admin'];
+
+      allow update: if isSelf(uid)
+        // uid, email and role are immutable from the client.
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+
+      allow delete: if false;
+    }
+
+    // -------------------------- customers --------------------------
+    match /customers/{id} {
+      allow read: if signedIn();
+
+      allow create, update: if signedIn()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() >= 6
+        && request.resource.data.phone.size() <= 20
+        && request.resource.data.email is string
+        && request.resource.data.address is string;
+
+      allow delete: if signedIn();
+    }
+
+    // --------------------------- vehicles --------------------------
+    match /vehicles/{id} {
+      allow read: if signedIn();
+
+      allow create, update: if signedIn()
+        && request.resource.data.customerId is string
+        && request.resource.data.customerId.size() > 0
+        && request.resource.data.registrationNumber is string
+        && request.resource.data.registrationNumber.size() > 0
+        && request.resource.data.registrationNumber.size() <= 60
+        && request.resource.data.registrationKey is string
+        && request.resource.data.registrationKey.size() > 0
+        && request.resource.data.brand is string
+        && request.resource.data.model is string
+        && request.resource.data.year is int
+        && request.resource.data.year >= 1950
+        && request.resource.data.year <= 2100
+        && isNumber(request.resource.data.currentMileage)
+        && request.resource.data.currentMileage >= 0
+        && request.resource.data.currentMileage <= 2000000
+        && request.resource.data.predictionStatus in ['SAFE', 'DUE_SOON', 'OVERDUE', 'NO_DATA'];
+
+      allow delete: if signedIn();
+    }
+
+    // ------------------------ serviceRecords -----------------------
+    match /serviceRecords/{id} {
+      allow read: if signedIn();
+
+      allow create, update: if signedIn()
+        && request.resource.data.vehicleId is string
+        && request.resource.data.vehicleId.size() > 0
+        && request.resource.data.customerId is string
+        && request.resource.data.serviceDate is string
+        && request.resource.data.serviceDate.size() == 10
+        && isNumber(request.resource.data.mileage)
+        && request.resource.data.mileage >= 0
+        && request.resource.data.mileage <= 2000000
+        && request.resource.data.serviceType is string
+        && request.resource.data.serviceType.size() > 0
+        && request.resource.data.description is string
+        && isNumber(request.resource.data.cost)
+        && request.resource.data.cost >= 0
+        && request.resource.data.cost <= 10000000
+        && request.resource.data.technician is string;
+
+      allow delete: if signedIn();
+    }
+
+    // Deny everything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
