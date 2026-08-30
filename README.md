@@ -58,7 +58,7 @@ vehicle cascades to its dependent vehicles/service records).
 ### Setup
 
 ```bash
-git clone <PUBLIC-REPOSITORY-URL>
+git clone https://github.com/armanhossen-dev/lsh26-T040-p09
 cd lsh26-t040-p09
 npm install
 cp .env.example .env
