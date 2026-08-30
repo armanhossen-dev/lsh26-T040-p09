@@ -1,58 +1,84 @@
 {
   "team_id": "LSH26-T040",
   "problem_id": "P09",
-  "repository_name": "lsh26-T040-p09",
-  "live_url": "https://example.com",
+  "repository_name": "lsh26-t040-p09",
+  "live_url": "https://lsh26-t040-p09.vercel.app",
   "demo_video_url_optional": "",
   "event_start_code": "LSH26-8490-C900",
   "repository_created_before_release": false,
   "pre_event_materials": [],
   "sample_data": {
     "loads_published_fixture": true,
-    "method": "file upload",
-    "reset_instructions": "Explain how judges can restore the initial data."
+    "method": "API fetch and pre-populated fixture loader",
+    "reset_instructions": "Judges can load or restore initial sample data via the fixture setup interface or reset options on the dashboard."
   },
-  "problem_solving_method": "Briefly explain the approach and why the team chose it.",
+  "problem_solving_method": "Built a deterministic prediction engine (src/lib/prediction.ts) that calculates maintenance statuses (Overdue, Due soon, Fine) based on fixture case dates, odometer readings, and daily averages, integrated with a React context-driven dynamic UI.",
   "requirements": {
     "R1": {
       "status": "complete",
-      "evidence": "Page, route, feature or source-file path"
+      "evidence": "/vehicles, /customers/:id, src/pages/Vehicles.tsx, src/pages/CustomerDetails.tsx"
     },
     "R2": {
       "status": "complete",
-      "evidence": "Page, route, feature or source-file path"
+      "evidence": "/, /vehicles/:id, src/lib/prediction.ts, src/lib/prediction.test.ts"
     },
     "R3": {
-      "status": "partial",
-      "evidence": "Explain what works and what remains"
+      "status": "complete",
+      "evidence": "/, src/pages/Dashboard.tsx"
     },
     "R4": {
-      "status": "not_attempted",
-      "evidence": "Not attempted"
+      "status": "complete",
+      "evidence": "/vehicles/:id, src/pages/VehicleDetails.tsx, src/pages/ServiceRecords.tsx"
     }
   },
   "team_members": [
     {
-      "registered_name": "<MEMBER NAME>",
-      "github_username": "<GITHUB USERNAME>",
-      "major_contribution": "Brief description of personal contribution",
+      "registered_name": "Md. Arman Hossen Ripon",
+      "github_username": "armanhossen-dev",
+      "major_contribution": "Frontend Developer responsible for page layouts, UI components, dashboard structures, and navigation flows.",
       "evidence_paths_or_commits": [
-        "src/example-file",
-        "<commit SHA if helpful>"
+        "src/components/",
+        "src/pages/"
+      ]
+    },
+    {
+      "registered_name": "Bornil Mahmud",
+      "github_username": "BornilMahmud",
+      "major_contribution": "Lead Backend Developer responsible for Firebase integration, prediction algorithm logic, unit test execution, and context management.",
+      "evidence_paths_or_commits": [
+        "src/lib/prediction.ts",
+        "src/lib/firebase.ts",
+        "src/context/"
       ]
     }
   ],
   "major_design_decisions": [
-    "Decision and short reason"
+    "Deterministic Date Calculation: Decoupled service due-date predictions from system local time to strictly follow the fixture case date.",
+    "Real-time Context Sync: Integrated Firebase Firestore directly with React Context to instantly reflect service completion resets across views."
   ],
   "known_limitations": [
-    "Known limitation or unfinished behaviour"
+    "Requires active network connection for initial Firebase sync before local storage fallback activates."
   ],
   "ai_tools_used": [
     {
-      "tool": "<TOOL NAME>",
-      "used_for": "What the tool helped with",
-      "how_output_was_verified": "How the team checked the result"
+      "tool": "ChatGPT",
+      "used_for": "Planning, debugging, documentation, and implementation assistance.",
+      "how_output_was_verified": "Manually reviewed, adapted, and tested output within application workflow."
+    },
+    {
+      "tool": "Claude",
+      "used_for": "Coding assistance, debugging, and code review.",
+      "how_output_was_verified": "Integrated code snippets into existing codebase and verified through test suites."
+    },
+    {
+      "tool": "DeepSeek",
+      "used_for": "Coding and technical problem-solving assistance.",
+      "how_output_was_verified": "Step-by-step logic verification and edge-case execution check."
+    },
+    {
+      "tool": "Genspark AI",
+      "used_for": "Research, implementation ideas, and development productivity.",
+      "how_output_was_verified": "Evaluated generated suggestions manually before implementation."
     }
   ],
   "licenses_file": "LICENSES.md",
