@@ -52,8 +52,8 @@ You can load or reset fixture data via the dashboard setup panel or application 
 ### Setup
 
 ```bash
-git clone https://github.com/armanhossen-dev/lsh26-T040-p09.git
-cd lsh26-T040-p09
+git clone https://github.com/armanhossen-dev/lsh26-T040-p12.git
+cd lsh26-T040-p12
 npm install
 cp .env.example .env
 npm run dev
