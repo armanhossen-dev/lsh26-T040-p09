@@ -1,8 +1,8 @@
 # Event Start Record
 
-- **Team ID:** `LSH26-Nightmare`
+- **Team ID:** `LSH26-T040`
 - **Problem ID:** `P09`
-- **Repository:** `lsh26-Nightmare-p09`
+- **Repository:** `lsh26-T040-p09`
 - **Event start code:** `LSH26-8490-C900`
 - **Repository created before release:** Yes / No
 
