@@ -1,138 +1,132 @@
-# Vehicle Service Tracker
+# Vehicle Service Due Predictor
 
-Solution for **LofiStack Hackathon 2026 — P09**
+**LofiStack Hackathon 2026 · Team Nightmare · LSH26-T040**
 
-## Project information
+## Problem
 
-* **Team:** Nightmare
-* **Team ID:** `LSH26-T040`
-* **Problem:** `P09 — Vehicle Service`
-* **Live application:** `<LIVE-APP-URL>`
-* **Demo video:** `<OPTIONAL-DEMO-VIDEO-URL>`
+**P09 — Vehicle Service Due Predictor**
 
-> Judges will evaluate only the exact commit SHA entered in the Final Submission Form.
+Vehicle Service Due Predictor helps a workshop track vehicle maintenance, predict when service items become due, prioritize daily customer calls, and maintain service history.
 
-## Solution summary
+## Team
 
-Vehicle Service Tracker helps vehicle owners keep track of important maintenance and service requirements in one place. The application uses vehicle information, odometer readings, service schedules, and service history to determine upcoming or overdue maintenance based on fixed dates, time intervals, and mileage.
+| Member | Role | GitHub |
+|---|---|---|
+| Md. Arman Hossen Ripon | Frontend Developer | `armanhossen-dev` |
+| Bornil Mahmud | Lead Backend Developer | `BornilMahmud` |
 
-The goal is to make vehicle maintenance easier to monitor and help owners avoid missed servicing, expired documents, and mileage-based maintenance.
+## Event Start Code
 
-## Requirements
+`LSH26-8490-C900`
 
-| Requirement                         | Status   | Where to verify                    |
-| ----------------------------------- | -------- | ---------------------------------- |
-| Vehicle and owner information       | Complete | Vehicle/owner dashboard            |
-| Odometer reading tracking           | Complete | Vehicle details / odometer section |
-| Fixed-date service tracking         | Complete | Service schedule                   |
-| Period-based service tracking       | Complete | Service schedule                   |
-| Distance-based service tracking     | Complete | Service schedule                   |
-| Service history                     | Complete | Vehicle service history            |
-| Upcoming/overdue service indication | Complete | Vehicle dashboard/service status   |
+The event start code is recorded in `EVENT.md` as required by the hackathon.
 
-## How to test the application
+## P09 Requirements
 
-1. Open the live application.
-2. Load or enter a P09 vehicle-service case.
-3. Select a vehicle and review its current odometer reading.
-4. Review the service items and their maintenance rules.
-5. Check the service history for previously completed maintenance.
-6. Verify the application calculates the service status from the supplied dates, intervals, mileage, and history.
-7. Add/update an odometer reading and verify that distance-based service status changes accordingly.
+### 1. Vehicle and service data
 
-### Test or sample data
+The system supports vehicle records containing owner information, current odometer readings, service items, maintenance rules, and previous service records.
 
-The submission kit provides public P09 fixture data in:
+Service rules include:
 
-`fixtures/P09_vehicle_service_public.json`
+- **Fixed-date services** — e.g. insurance and fitness
+- **Time-period services** — e.g. engine oil replacement
+- **Distance-based services** — e.g. brake pads and tyres
 
-The fixture contains vehicle owners, vehicles, odometer readings, service items, maintenance rules, and service history.
+The solution is designed to work with the official P09 sample data containing at least 40 vehicles belonging to at least 25 owners.
 
-The application should treat the fixture's `today` value as the case date rather than relying on the computer's current clock.
+### 2. Next due date and service status
 
-Example service rules include:
+For every service item, the application determines its next due date according to its own maintenance rule.
 
-* **Fixed date:** Insurance/document renewal
-* **Period based:** Air filter every N months
-* **Distance based:** Brake pads every N kilometres
+For distance-based maintenance, the predicted date is estimated from the vehicle's current odometer reading and its average daily distance.
 
-## Run locally
+Each item is classified as:
 
-### Requirements
+- **Overdue**
+- **Due soon**
+- **Fine**
 
-* `<RUNTIME AND VERSION>`
-* `<PACKAGE MANAGER>`
-* `<DATABASE, IF REQUIRED>`
+The calculations use the case date supplied by the fixture rather than depending on the machine's current date.
 
-### Setup
+### 3. Workshop daily call list
 
-```bash
-git clone <PUBLIC-REPOSITORY-URL>
-cd lsh26-t040-p09
+The workshop receives a prioritized daily call list containing:
 
-<INSTALL-COMMAND>
+- Owner to contact
+- Vehicle
+- Service item
+- Reason the item needs attention
+- Service priority
 
-<COPY-EXAMPLE-ENV-COMMAND>
+The list is ordered so that the most overdue and highest-value work can be handled first.
 
-<RUN-COMMAND>
-```
+### 4. Owner vehicle page and service completion
 
-Do not include real passwords, tokens, API keys, or private credentials.
+Each owner can view a vehicle page containing:
 
-## Problem-solving approach
+- Vehicle information
+- Every service item
+- Next due date
+- Estimated/service cost
+- Current service status
+- Service history
 
-We approached the problem by first identifying the three main maintenance-rule types: fixed-date, time-period, and distance-based service schedules.
+When a workshop records a completed service, the service item is reset according to its maintenance rule and a new service-history record is created.
 
-The application keeps the vehicle's current odometer reading and service history as the basis for determining whether a service is upcoming, due, or overdue. For date-based services, the relevant due date and service interval are considered. For mileage-based services, the latest odometer reading and previous service mileage are compared.
+## Sample Data
 
-We also designed the interface around quick visibility of vehicle status so that a user can understand which maintenance items need attention without manually calculating every interval.
+Official P09 fixture:
 
-The solution was tested using the published P09 fixture structure and different combinations of service dates, service history, and odometer readings.
+`https://live.hackathon.lofistack.com/api/fixtures/P09?teamId=LSH26-T040`
 
-## Technology used
+The fixture should be used to verify vehicle counts, owners, odometer readings, maintenance rules, service history, due-date calculations, statuses, and service costs.
 
-* **Frontend:** `<FRONTEND TECHNOLOGY>`
-* **Backend:** `<BACKEND TECHNOLOGY>`
-* **Database:** `<DATABASE OR N/A>`
-* **Deployment:** `<DEPLOYMENT PROVIDER>`
-* **Other material tools:** `<LIBRARIES / UI COMPONENTS / OTHER TOOLS>`
+## How to Test
 
-See [`LICENSES.md`](LICENSES.md) for third-party materials.
+1. Start the application.
+2. Load the P09 sample data.
+3. Open the workshop/dashboard view.
+4. Review the daily call list.
+5. Verify service items are categorized as overdue, due soon, or fine.
+6. Open an owner and vehicle.
+7. Verify every service item has a next due date and cost.
+8. Check fixed-date, period-based, and distance-based maintenance.
+9. Record a completed service.
+10. Confirm the item resets and the service history grows.
 
-## Team contributions
+## Technology
 
-| Registered member      | GitHub username   | Major contribution                                                 | Evidence                          |
-| ---------------------- | ----------------- | ------------------------------------------------------------------ | --------------------------------- |
-| Md. Arman Hossen Ripon | `armanhossen-dev` | Frontend development, UI and user-facing vehicle/service workflows | Frontend source files and commits |
-| Bornil Mahmud          | `BornilMahmud`    | Backend development, service logic and data handling               | Backend source files and commits  |
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS
+- **Backend:** Node.js, Firebase SDK
+- **Database:** Firebase Cloud Firestore & Authentication
+- **Deployment:** Vercel / Cloudflare Pages
 
-## AI usage
+## AI Usage
 
-The team used AI tools as development assistants. AI-generated suggestions were reviewed, adapted, tested, and integrated by the team.
+The team used the following AI tools as development assistants:
 
-* **ChatGPT** — Assisted with problem analysis, solution planning, debugging, documentation, and development guidance.
-* **Claude** — Assisted with coding ideas, code review, debugging, and implementation guidance.
-* **DeepSeek** — Assisted with coding, debugging, and technical problem solving.
-* **Genspark AI** — Assisted with development research, implementation ideas, and productivity.
+- **ChatGPT** — planning, debugging, documentation, and implementation assistance
+- **Claude** — coding assistance, debugging, and review
+- **DeepSeek** — coding and technical problem-solving assistance
+- **Genspark AI** — research, implementation ideas, and development productivity
 
-The team remains responsible for understanding, testing, and defending all submitted code and functionality.
+All AI-assisted output was reviewed, adapted, tested, and integrated by the team.
 
-## Major design decisions
+## Repository
 
-* **Rule-based service calculation:** Service status is derived from the maintenance rule and available service history instead of relying on manually entered status values.
-* **Case-based date handling:** The application's calculations use the `today` value supplied by the P09 case data where applicable.
-* **Separate maintenance rule types:** Fixed-date, period-based, and distance-based rules are handled independently to make the calculations easier to verify and maintain.
-* **Service history as evidence:** Previous service records are used when determining the next maintenance requirement.
+- `EVENT.md` — event start code
+- `LICENSES.md` — third-party libraries/assets and licenses
+- `evaluation-manifest.json` — evaluation evidence, if included
 
-## Known limitations
+## Live Demo
 
-* The application depends on correctly structured vehicle/service data.
-* Advanced vehicle telemetry or automatic odometer integration is outside the current scope.
-* Notifications/reminders may depend on the deployed application's available notification infrastructure.
-* The current solution is focused on the requirements and fixture format provided for P09.
+`https://lsh26-t040-p09.vercel.app/`
 
-## Repository records
+## Demo Video
 
-* [`EVENT.md`](EVENT.md) — event start code and pre-event-material declaration
-* [`evaluation-manifest.json`](evaluation-manifest.json) — structured judging evidence
-* [`LICENSES.md`](LICENSES.md) — frameworks, libraries, templates and assets
+`<ADD DEMO VIDEO URL IF AVAILABLE>`
+
+## Important Submission Note
+
+The Final Submission Form requires the exact **40-character commit SHA** for this repository. The repository must be public before submission.
