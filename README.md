@@ -4,7 +4,7 @@ Solution for **LofiStack Hackathon 2026 — P09**
 
 ## Project information
 
-- **Team:** ``
+- **Team:** `Nightmare`
 - **Team ID:** `LSH26-T040`
 - **Problem:** `P09 — Vehicle Service Prediction`
 - **Live application:** [lsh26-t040-p09.vercel.app](https://lsh26-t040-p09.vercel.app/)    
