@@ -1,0 +1,2385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P09 - Vehicle Service Due Predictor</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    
+    <style>
+        /* ======================================================
+                   CSS VARIABLES & RESET
+                   ====================================================== */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #60a5fa;
+            --primary-bg: #dbeafe;
+            --success: #22c55e;
+            --success-bg: #dcfce7;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --info: #06b6d4;
+            --info-bg: #cffafe;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --transition: all 0.2s ease;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-sidebar: #ffffff;
+            --bg-header: rgba(255,255,255,0.92);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-sidebar: #1e293b;
+            --bg-header: rgba(30, 41, 59, 0.92);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.5), 0 4px 6px rgba(0,0,0,0.3);
+            --primary-bg: #1e3a5f;
+            --success-bg: #14532d;
+            --danger-bg: #7f1d1d;
+            --warning-bg: #713f12;
+            --info-bg: #164e63;
+            --gray-50: #1e293b;
+            --gray-100: #334155;
+            --gray-200: #475569;
+            --gray-300: #64748b;
+            --gray-400: #94a3b8;
+            --gray-500: #cbd5e1;
+            --gray-600: #e2e8f0;
+            --gray-700: #f1f5f9;
+            --gray-800: #f8fafc;
+            --gray-900: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            transition: var(--transition);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--gray-100); }
+        ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+        /* ======================================================
+                   LAYOUT
+                   ====================================================== */
+        .app-container { display: flex; min-height: 100vh; }
+
+        /* ======================================================
+                   SIDEBAR
+                   ====================================================== */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 8px 20px 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .sidebar-brand .logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .sidebar-brand .logo-sub {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-nav .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+
+        .sidebar-nav .nav-item:hover {
+            background: var(--gray-100);
+            color: var(--text-primary);
+        }
+
+        .sidebar-nav .nav-item.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .sidebar-nav .nav-item i { width: 20px; font-size: 16px; }
+        .sidebar-nav .nav-item .badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            transition: border-color 0.3s ease;
+        }
+
+        .theme-toggle-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--gray-100);
+            color: var(--text-primary);
+        }
+
+        /* ======================================================
+                   MAIN CONTENT
+                   ====================================================== */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ======================================================
+                   HEADER
+                   ====================================================== */
+        .header {
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-left .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .header-left .page-title h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+
+        .header-left .page-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-right .today-badge {
+            background: var(--primary-bg);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .header-right .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-right .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ======================================================
+                   PAGE CONTENT
+                   ====================================================== */
+        .page-content {
+            padding: 24px 32px 100px 32px;
+            flex: 1;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ======================================================
+                   STATS CARDS
+                   ====================================================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover { box-shadow: var(--shadow-md); }
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+        .stat-card .stat-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ======================================================
+                   CALL LIST
+                   ====================================================== */
+        .call-list-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .call-list-container .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .call-list-container .list-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .call-list-container .list-header .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .call-list-container .list-header select,
+        .call-list-container .list-header input {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .call-list-container .list-header select:focus,
+        .call-list-container .list-header input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .call-item {
+            display: flex;
+            align-items: stretch;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 16px;
+            transition: var(--transition);
+            cursor: pointer;
+            flex-wrap: wrap;
+        }
+
+        .call-item:hover {
+            background: var(--gray-50);
+            border-radius: 6px;
+            margin: 0 -4px;
+            padding: 14px 20px;
+        }
+
+        .call-item:last-child { border-bottom: none; }
+
+        .call-item .priority-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .call-item .priority-badge.overdue {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+        .call-item .priority-badge.due-soon {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .call-item .priority-badge.fine {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .call-item .call-info {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .call-item .call-info .owner-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .call-item .call-info .vehicle-detail {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .call-item .call-items {
+            flex: 2;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .call-item .call-items .service-tag {
+            background: var(--gray-100);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .call-item .call-items .service-tag.overdue {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .call-item .call-items .service-tag.due-soon {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .call-item .call-value {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        /* ======================================================
+                   VEHICLE GRID
+                   ====================================================== */
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .vehicle-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .vehicle-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .vehicle-card .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .vehicle-card .vehicle-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .vehicle-card .vehicle-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .vehicle-card .vehicle-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 12px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .vehicle-card .vehicle-meta .meta-label {
+            color: var(--text-muted);
+        }
+
+        .vehicle-card .vehicle-meta .meta-value {
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .vehicle-card .vehicle-status {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .vehicle-card .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .vehicle-card .status-dot.overdue { background: var(--danger); }
+        .vehicle-card .status-dot.due-soon { background: var(--warning); }
+        .vehicle-card .status-dot.fine { background: var(--success); }
+
+        /* ======================================================
+                   OWNER DETAIL / VEHICLE PAGE
+                   ====================================================== */
+        .owner-detail-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .owner-detail-container .back-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 4px 0;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        .owner-detail-container .back-btn:hover { text-decoration: underline; }
+
+        .owner-detail-container .owner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .owner-detail-container .owner-header .owner-name {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .owner-detail-container .owner-header .owner-contact {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .service-item-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .service-item-row:last-child { border-bottom: none; }
+
+        .service-item-row .service-name {
+            font-weight: 500;
+            min-width: 120px;
+            font-size: 14px;
+        }
+
+        .service-item-row .service-detail {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-muted);
+            min-width: 100px;
+        }
+
+        .service-item-row .service-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 12px;
+        }
+
+        .service-item-row .service-status.overdue {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+        .service-item-row .service-status.due-soon {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .service-item-row .service-status.fine {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .service-item-row .service-cost {
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .service-item-row .service-action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .service-item-row .service-action-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .service-item-row .service-action-btn.completed {
+            background: var(--success);
+        }
+
+        /* ======================================================
+                   MODAL
+                   ====================================================== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 92%;
+            padding: 28px;
+            box-shadow: var(--shadow-lg);
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: background 0.3s ease;
+        }
+
+        .modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .modal .modal-close:hover { color: var(--text-primary); }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: var(--transition);
+            background: var(--bg-body);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .form-actions .btn-secondary {
+            background: var(--gray-100);
+            color: var(--text-secondary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-actions .btn-secondary:hover { background: var(--gray-200); }
+
+        .form-actions .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-actions .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ======================================================
+                   TOAST
+                   ====================================================== */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--gray-900);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 280px;
+            animation: slideUp 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ======================================================
+                   RESPONSIVE
+                   ====================================================== */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .header-left .menu-toggle { display: block; }
+            .header { padding: 10px 16px; }
+            .header-left .page-title h1 { font-size: 17px; }
+            .header-left .page-title p { font-size: 12px; }
+            .header-right .btn-primary span { display: none; }
+            .page-content { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .vehicle-grid { grid-template-columns: 1fr; }
+            .call-item { flex-direction: column; gap: 8px; }
+            .call-item .call-items { flex: 1; }
+            .service-item-row { flex-direction: column; align-items: stretch; gap: 6px; }
+            .service-item-row .service-cost { text-align: left; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .call-list-container .list-header { flex-direction: column; align-items: stretch; }
+            .call-list-container .list-header .filter-group { flex-direction: column; }
+        }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-sm { font-size: 13px; }
+        .text-xs { font-size: 11px; }
+        .mb-3 { margin-bottom: 12px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mt-4 { margin-top: 16px; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- ======================================================
+    APP CONTAINER
+    ====================================================== -->
+    <div class="app-container">
+
+        <!-- ======================================================
+        SIDEBAR
+        ====================================================== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <span class="logo">🔧 P09</span>
+                <span class="logo-sub">Service Predictor</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-th-large"></i> Dashboard
+                    <span class="badge" id="overdueBadge">0</span>
+                </button>
+                <button class="nav-item" data-page="vehicles">
+                    <i class="fas fa-car"></i> Vehicles
+                </button>
+                <button class="nav-item" data-page="owners">
+                    <i class="fas fa-users"></i> Owners
+                </button>
+                <button class="nav-item" data-page="call-list">
+                    <i class="fas fa-phone"></i> Call List
+                    <span class="badge" id="callListBadge">0</span>
+                </button>
+                <button class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="theme-toggle-btn" id="themeToggle">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span id="themeLabel">Dark Mode</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ======================================================
+        MAIN CONTENT
+        ====================================================== -->
+        <main class="main-content">
+
+            <!-- HEADER -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="page-title">
+                        <h1 id="pageTitle">Dashboard</h1>
+                        <p id="pageSubtitle">Vehicle Service Due Predictor</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span class="today-badge" id="todayBadge"></span>
+                    <button class="btn-primary" id="addVehicleBtn">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Vehicle</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- PAGE CONTENT -->
+            <div class="page-content">
+
+                <!-- ==============================================
+                DASHBOARD
+                ============================================== -->
+                <section class="page-section active" id="page-dashboard">
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Vehicles</div>
+                            <div class="stat-value" id="statVehicles">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Owners</div>
+                            <div class="stat-value" id="statOwners">0</div>
+                        </div>
+                        <div class="stat-card" style="border-left:4px solid var(--danger);">
+                            <div class="stat-label">Overdue Services</div>
+                            <div class="stat-value" id="statOverdue">0</div>
+                            <div class="stat-sub">Need immediate attention</div>
+                        </div>
+                        <div class="stat-card" style="border-left:4px solid var(--warning);">
+                            <div class="stat-label">Due Soon</div>
+                            <div class="stat-value" id="statDueSoon">0</div>
+                            <div class="stat-sub">Within 7 days</div>
+                        </div>
+                        <div class="stat-card" style="border-left:4px solid var(--success);">
+                            <div class="stat-label">Up to Date</div>
+                            <div class="stat-value" id="statFine">0</div>
+                            <div class="stat-sub">All services current</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Overdue Items -->
+                    <div class="call-list-container">
+                        <div class="list-header">
+                            <h2>⚠️ Priority Call List</h2>
+                            <span class="text-muted text-sm">Most overdue & highest value first</span>
+                        </div>
+                        <div id="priorityCallList">
+                            <div class="text-muted text-sm text-center" style="padding:20px;">Loading...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================
+                VEHICLES
+                ============================================== -->
+                <section class="page-section" id="page-vehicles">
+                    <div class="flex-between mb-3" style="flex-wrap:wrap;gap:8px;">
+                        <div>
+                            <h2 style="font-size:18px;font-weight:600;">All Vehicles</h2>
+                            <p class="text-muted text-sm">Click a vehicle to view service details</p>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <input type="text" id="vehicleSearch" placeholder="Search by reg or owner..." style="padding:6px 12px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-family:inherit;" />
+                            <select id="vehicleStatusFilter" style="padding:6px 12px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-family:inherit;">
+                                <option value="all">All Status</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="due-soon">Due Soon</option>
+                                <option value="fine">Up to Date</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="vehicle-grid" id="vehicleGrid">
+                        <div class="text-muted text-sm text-center" style="grid-column:1/-1;padding:32px;">No vehicles found</div>
+                    </div>
+                </section>
+
+                <!-- ==============================================
+                OWNERS
+                ============================================== -->
+                <section class="page-section" id="page-owners">
+                    <div class="flex-between mb-3" style="flex-wrap:wrap;gap:8px;">
+                        <div>
+                            <h2 style="font-size:18px;font-weight:600;">Vehicle Owners</h2>
+                            <p class="text-muted text-sm">Manage owners and their vehicles</p>
+                        </div>
+                        <button class="btn-primary" id="addOwnerBtn"><i class="fas fa-plus"></i> Add Owner</button>
+                    </div>
+                    <div id="ownerList">
+                        <div class="text-muted text-sm text-center" style="padding:32px;">Loading owners...</div>
+                    </div>
+                </section>
+
+                <!-- ==============================================
+                CALL LIST
+                ============================================== -->
+                <section class="page-section" id="page-call-list">
+                    <div class="call-list-container">
+                        <div class="list-header">
+                            <h2>📞 Daily Call List</h2>
+                            <div class="filter-group">
+                                <select id="callListFilter">
+                                    <option value="all">All Items</option>
+                                    <option value="overdue">Overdue Only</option>
+                                    <option value="due-soon">Due Soon Only</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="callListContainer">
+                            <div class="text-muted text-sm text-center" style="padding:20px;">Loading call list...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================
+                SETTINGS
+                ============================================== -->
+                <section class="page-section" id="page-settings">
+                    <div style="max-width:560px;margin:0 auto;">
+                        <h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">Settings</h2>
+                        <p class="text-muted text-sm mb-4">Application preferences</p>
+                        <div class="card" style="background:var(--bg-card);border-radius:var(--radius);padding:20px;border:1px solid var(--border-color);margin-bottom:16px;">
+                            <h4 style="font-weight:600;margin-bottom:8px;"><i class="fas fa-car"></i> Service Rules</h4>
+                            <div class="text-sm text-muted">
+                                <div>Insurance: Annual (fixed date)</div>
+                                <div>Fitness: Annual (fixed date)</div>
+                                <div>Engine Oil: Every 6 months or 5,000 km</div>
+                                <div>Brake Pads: Every 20,000 km</div>
+                                <div>Tyres: Every 40,000 km</div>
+                            </div>
+                        </div>
+                        <div class="card" style="background:var(--bg-card);border-radius:var(--radius);padding:20px;border:1px solid var(--border-color);">
+                            <h4 style="font-weight:600;margin-bottom:8px;"><i class="fas fa-database"></i> Data</h4>
+                            <div class="flex-between">
+                                <span class="text-sm text-muted">Total Vehicles: <span id="settingsVehicleCount">0</span></span>
+                                <span class="text-sm text-muted">Total Owners: <span id="settingsOwnerCount">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ======================================================
+    MODAL
+    ====================================================== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Vehicle</h2>
+                <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- ======================================================
+    TOAST
+    ====================================================== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ======================================================
+    JAVASCRIPT
+    ====================================================== -->
+    <script>
+        // ======================================================
+        // DATA GENERATION
+        // ======================================================
+
+        // Service item templates
+        const SERVICE_TEMPLATES = {
+            'Insurance': { type: 'fixed-date', interval: 365, cost: 12000, icon: 'fa-shield-alt' },
+            'Fitness Certificate': { type: 'fixed-date', interval: 365, cost: 3500, icon: 'fa-certificate' },
+            'Engine Oil Change': { type: 'time-distance', timeInterval: 180, distanceInterval: 5000, cost: 4500,
+                icon: 'fa-oil-can' },
+            'Brake Pads': { type: 'distance', distanceInterval: 20000, cost: 8500, icon: 'fa-brake' },
+            'Tyres': { type: 'distance', distanceInterval: 40000, cost: 32000, icon: 'fa-circle' },
+            'Air Filter': { type: 'time-distance', timeInterval: 365, distanceInterval: 15000, cost: 2800,
+                icon: 'fa-wind' },
+            'Spark Plugs': { type: 'distance', distanceInterval: 30000, cost: 4200, icon: 'fa-bolt' },
+            'Coolant Flush': { type: 'time', timeInterval: 730, cost: 3800, icon: 'fa-tint' },
+            'Transmission Fluid': { type: 'distance', distanceInterval: 60000, cost: 9500, icon: 'fa-cogs' },
+            'Battery Check': { type: 'time', timeInterval: 365, cost: 1500, icon: 'fa-battery-full' },
+        };
+
+        const SERVICE_NAMES = Object.keys(SERVICE_TEMPLATES);
+        const SERVICE_ICONS = {
+            'Insurance': 'fa-shield-alt',
+            'Fitness Certificate': 'fa-certificate',
+            'Engine Oil Change': 'fa-oil-can',
+            'Brake Pads': 'fa-brake',
+            'Tyres': 'fa-circle',
+            'Air Filter': 'fa-wind',
+            'Spark Plugs': 'fa-bolt',
+            'Coolant Flush': 'fa-tint',
+            'Transmission Fluid': 'fa-cogs',
+            'Battery Check': 'fa-battery-full'
+        };
+
+        // Owner names
+        const FIRST_NAMES = ['Mohammad', 'Abdul', 'Rafiq', 'Shahid', 'Rashed', 'Nurul', 'Kamal', 'Jahangir', 'Mizan', 'Farid',
+            'Abul', 'Kalam', 'Ruhul', 'Shamsul', 'Delwar', 'Habib', 'Shahjahan', 'Ataur', 'Khorshed', 'Mamun',
+            'Ashraf', 'Jahangir', 'Zakir', 'Shafiq', 'Hasan', 'Nazrul', 'Rafiqul', 'Bashir', 'Halim', 'Minhaz'
+        ];
+
+        const LAST_NAMES = ['Ahmed', 'Ali', 'Hossain', 'Rahman', 'Islam', 'Khan', 'Chowdhury', 'Haque', 'Sarker', 'Miah',
+            'Uddin', 'Begum', 'Zaman', 'Hasan', 'Kabir', 'Rashid', 'Sultana', 'Karim', 'Salim', 'Rahim'
+        ];
+
+        const PHONE_PREFIXES = ['017', '018', '019', '015', '016', '013', '014'];
+
+        // Vehicle makes
+        const MAKES = ['Toyota', 'Honda', 'Nissan', 'Mitsubishi', 'Suzuki', 'Hyundai', 'Kia', 'Ford', 'BMW', 'Mercedes',
+            'Audi', 'Volkswagen', 'Chevrolet', 'Mazda', 'Subaru', 'Lexus', 'Jeep', 'Land Rover', 'Porsche', 'Volvo'
+        ];
+
+        const MODELS = ['Corolla', 'Civic', 'Altima', 'Lancer', 'Swift', 'Elantra', 'Sportage', 'Fiesta', '3 Series',
+            'C-Class', 'A4', 'Golf', 'Malibu', '3', 'Impreza', 'RX', 'Wrangler', 'Discovery', 'Cayenne', 'XC90'
+        ];
+
+        // ======================================================
+        // APP STATE
+        // ======================================================
+        let state = {
+            owners: [],
+            vehicles: [],
+            serviceRecords: [],
+            selectedOwnerId: null,
+            selectedVehicleId: null,
+            editingServiceId: null,
+        };
+
+        let nextId = 1;
+        let nextOwnerId = 1;
+        let nextRecordId = 1;
+
+        // ======================================================
+        // UTILITY FUNCTIONS
+        // ======================================================
+        function generateId() {
+            return nextId++;
+        }
+
+        function generateOwnerId() {
+            return nextOwnerId++;
+        }
+
+        function generateRecordId() {
+            return nextRecordId++;
+        }
+
+        function randomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomDecimal(min, max, decimals = 1) {
+            return parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
+        }
+
+        function randomDate(start, end) {
+            const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+            return d.toISOString().split('T')[0];
+        }
+
+        function addDays(dateStr, days) {
+            const d = new Date(dateStr);
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
+
+        function daysBetween(date1, date2) {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            return Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        function formatCurrency(amount) {
+            return '৳' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getStatus(dueDate, today) {
+            const days = daysBetween(today, dueDate);
+            if (days < 0) return 'overdue';
+            if (days <= 7) return 'due-soon';
+            return 'fine';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'overdue': 'Overdue',
+                'due-soon': 'Due Soon',
+                'fine': 'Up to Date'
+            };
+            return labels[status] || status;
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'overdue': 'var(--danger)',
+                'due-soon': 'var(--warning)',
+                'fine': 'var(--success)'
+            };
+            return colors[status] || 'var(--text-muted)';
+        }
+
+        // ======================================================
+        // DATA GENERATION
+        // ======================================================
+        function generateOwners(count) {
+            const owners = [];
+            const usedNames = new Set();
+            for (let i = 0; i < count; i++) {
+                let firstName, lastName, fullName;
+                do {
+                    firstName = randomItem(FIRST_NAMES);
+                    lastName = randomItem(LAST_NAMES);
+                    fullName = firstName + ' ' + lastName;
+                } while (usedNames.has(fullName));
+                usedNames.add(fullName);
+
+                const phone = randomItem(PHONE_PREFIXES) + String(randomNumber(1000000, 9999999));
+                owners.push({
+                    id: generateOwnerId(),
+                    name: fullName,
+                    phone: phone,
+                    email: firstName.toLowerCase() + '.' + lastName.toLowerCase() + '@example.com',
+                    address: randomItem(['Dhaka', 'Chattogram', 'Khulna', 'Rajshahi', 'Sylhet', 'Barishal', 'Rangpur']) +
+                        ', Bangladesh'
+                });
+            }
+            return owners;
+        }
+
+        function generateVehicle(ownerId, ownerName) {
+            const make = randomItem(MAKES);
+            const model = randomItem(MODELS);
+            const year = randomNumber(2005, 2025);
+            const regYear = year;
+            const regMonth = String(randomNumber(1, 12)).padStart(2, '0');
+            const regDay = String(randomNumber(1, 28)).padStart(2, '0');
+            const registrationDate = `${regYear}-${regMonth}-${regDay}`;
+
+            // Generate a random plate
+            const plate = 'BD-' + String(randomNumber(10, 99)) + '-' + String(randomNumber(1000, 9999));
+
+            // Random odometer reading
+            const odometer = randomNumber(20000, 150000);
+
+            // Average daily distance (km per day)
+            const daysSinceReg = daysBetween(registrationDate, getToday()) || 1;
+            const avgDailyDistance = Math.round(odometer / daysSinceReg * 10) / 10;
+
+            return {
+                id: generateId(),
+                ownerId: ownerId,
+                ownerName: ownerName,
+                make: make,
+                model: model,
+                year: year,
+                registrationDate: registrationDate,
+                plate: plate,
+                odometer: odometer,
+                avgDailyDistance: avgDailyDistance,
+                lastServiceDate: registrationDate,
+            };
+        }
+
+        function generateServiceRecords(vehicle) {
+            const records = [];
+            const today = getToday();
+
+            // For each service type, determine the next due date and create a record
+            SERVICE_NAMES.forEach(serviceName => {
+                const template = SERVICE_TEMPLATES[serviceName];
+                let dueDate = null;
+                let lastPerformed = null;
+
+                // Generate a last performed date (some time in the past)
+                const maxAge = template.type === 'fixed-date' ? 400 : template.timeInterval || 400;
+                const ageDays = randomNumber(30, Math.min(maxAge, 400));
+                lastPerformed = addDays(today, -ageDays);
+
+                // Calculate next due date based on service type
+                if (template.type === 'fixed-date') {
+                    // Fixed date: use registration date anniversary
+                    const regDate = new Date(vehicle.registrationDate);
+                    const currentYear = new Date().getFullYear();
+                    const dueYear = currentYear + (new Date().getMonth() > regDate.getMonth() ? 1 : 0);
+                    dueDate = `${dueYear}-${String(regDate.getMonth()+1).padStart(2,'0')}-${String(regDate.getDate()).padStart(2,'0')}`;
+                } else if (template.type === 'time') {
+                    dueDate = addDays(lastPerformed, template.timeInterval);
+                } else if (template.type === 'distance') {
+                    // Estimate when the odometer will reach the interval
+                    const currentOdometer = vehicle.odometer;
+                    const nextOdometer = Math.ceil(currentOdometer / template.distanceInterval) * template
+                    .distanceInterval + template.distanceInterval;
+                    // Estimate days based on average daily distance
+                    if (vehicle.avgDailyDistance > 0) {
+                        const kmToGo = nextOdometer - currentOdometer;
+                        const daysToGo = Math.ceil(kmToGo / vehicle.avgDailyDistance);
+                        dueDate = addDays(today, daysToGo);
+                    } else {
+                        dueDate = addDays(today, 90);
+                    }
+                } else if (template.type === 'time-distance') {
+                    // Use whichever comes first: time or distance
+                    const timeDue = addDays(lastPerformed, template.timeInterval);
+                    const currentOdometer = vehicle.odometer;
+                    const nextOdometer = Math.ceil(currentOdometer / template.distanceInterval) * template
+                    .distanceInterval + template.distanceInterval;
+                    const kmToGo = nextOdometer - currentOdometer;
+                    let distanceDue = addDays(today, Math.ceil(kmToGo / vehicle.avgDailyDistance));
+                    if (vehicle.avgDailyDistance === 0) distanceDue = timeDue;
+                    dueDate = timeDue < distanceDue ? timeDue : distanceDue;
+                }
+
+                // Ensure due date is not in the distant future
+                if (!dueDate) dueDate = addDays(today, 90);
+
+                // Some randomness in cost
+                const costVariation = 0.85 + Math.random() * 0.3;
+                const cost = Math.round(template.cost * costVariation);
+
+                records.push({
+                    id: generateRecordId(),
+                    vehicleId: vehicle.id,
+                    serviceName: serviceName,
+                    lastPerformed: lastPerformed,
+                    dueDate: dueDate,
+                    cost: cost,
+                    isCompleted: false,
+                    completedDate: null,
+                    odometerAtService: vehicle.odometer,
+                });
+            });
+
+            return records;
+        }
+
+        function generateAllData() {
+            // Generate 25-30 owners
+            const ownerCount = randomNumber(25, 30);
+            const owners = generateOwners(ownerCount);
+
+            // Generate 40-45 vehicles distributed among owners
+            const vehicleCount = randomNumber(40, 45);
+            const vehicles = [];
+            const allRecords = [];
+
+            for (let i = 0; i < vehicleCount; i++) {
+                const owner = randomItem(owners);
+                const vehicle = generateVehicle(owner.id, owner.name);
+                vehicles.push(vehicle);
+                const records = generateServiceRecords(vehicle);
+                allRecords.push(...records);
+            }
+
+            return { owners, vehicles, records: allRecords };
+        }
+
+        // ======================================================
+        // INITIALIZE DATA
+        // ======================================================
+        function initializeData() {
+            const data = generateAllData();
+            state.owners = data.owners;
+            state.vehicles = data.vehicles;
+            state.serviceRecords = data.records;
+            renderAll();
+        }
+
+        // ======================================================
+        // DATA ACCESS FUNCTIONS
+        // ======================================================
+        function getVehicle(id) {
+            return state.vehicles.find(v => v.id === id);
+        }
+
+        function getOwner(id) {
+            return state.owners.find(o => o.id === id);
+        }
+
+        function getRecordsForVehicle(vehicleId) {
+            return state.serviceRecords.filter(r => r.vehicleId === vehicleId);
+        }
+
+        function getRecordsForOwner(ownerId) {
+            const vehicleIds = state.vehicles.filter(v => v.ownerId === ownerId).map(v => v.id);
+            return state.serviceRecords.filter(r => vehicleIds.includes(r.vehicleId));
+        }
+
+        function getVehiclesForOwner(ownerId) {
+            return state.vehicles.filter(v => v.ownerId === ownerId);
+        }
+
+        function getServiceStatus(record) {
+            const today = getToday();
+            return getStatus(record.dueDate, today);
+        }
+
+        function getOverdueCount() {
+            let count = 0;
+            state.serviceRecords.forEach(r => {
+                if (!r.isCompleted && getServiceStatus(r) === 'overdue') count++;
+            });
+            return count;
+        }
+
+        function getDueSoonCount() {
+            let count = 0;
+            state.serviceRecords.forEach(r => {
+                if (!r.isCompleted && getServiceStatus(r) === 'due-soon') count++;
+            });
+            return count;
+        }
+
+        function getFineCount() {
+            let count = 0;
+            state.serviceRecords.forEach(r => {
+                if (!r.isCompleted && getServiceStatus(r) === 'fine') count++;
+            });
+            return count;
+        }
+
+        function getCompletedCount() {
+            return state.serviceRecords.filter(r => r.isCompleted).length;
+        }
+
+        function getOwnerWithMostOverdue() {
+            const ownerOverdue = {};
+            state.owners.forEach(o => {
+                const records = getRecordsForOwner(o.id);
+                const overdue = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'overdue');
+                ownerOverdue[o.id] = overdue.length;
+            });
+            const sorted = Object.entries(ownerOverdue).sort((a, b) => b[1] - a[1]);
+            if (sorted.length === 0) return null;
+            return getOwner(parseInt(sorted[0][0]));
+        }
+
+        function getServiceValue(record) {
+            // For prioritizing: combine overdue days and cost
+            const today = getToday();
+            const days = daysBetween(today, record.dueDate);
+            const overduePenalty = days < 0 ? Math.abs(days) * 100 : 0;
+            return record.cost + overduePenalty;
+        }
+
+        function getPriorityCallList() {
+            const items = [];
+            state.vehicles.forEach(vehicle => {
+                const records = getRecordsForVehicle(vehicle.id);
+                const overdueRecords = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'overdue');
+                const dueSoonRecords = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'due-soon');
+
+                if (overdueRecords.length > 0 || dueSoonRecords.length > 0) {
+                    const allDue = [...overdueRecords, ...dueSoonRecords];
+                    const totalValue = allDue.reduce((sum, r) => sum + getServiceValue(r), 0);
+                    items.push({
+                        vehicle: vehicle,
+                        owner: getOwner(vehicle.ownerId),
+                        overdueRecords: overdueRecords,
+                        dueSoonRecords: dueSoonRecords,
+                        totalValue: totalValue,
+                        priority: overdueRecords.length * 100 + totalValue / 100,
+                    });
+                }
+            });
+
+            // Sort by priority (most overdue first, then highest value)
+            items.sort((a, b) => {
+                if (a.overdueRecords.length !== b.overdueRecords.length) {
+                    return b.overdueRecords.length - a.overdueRecords.length;
+                }
+                return b.totalValue - a.totalValue;
+            });
+
+            return items;
+        }
+
+        // ======================================================
+        // RENDER FUNCTIONS
+        // ======================================================
+        function renderAll() {
+            renderDashboard();
+            renderVehicles();
+            renderOwners();
+            renderCallList();
+            updateBadges();
+            updateToday();
+            updateSettings();
+        }
+
+        function updateToday() {
+            const today = new Date();
+            document.getElementById('todayBadge').textContent =
+                today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function updateBadges() {
+            const overdue = getOverdueCount();
+            const dueSoon = getDueSoonCount();
+            document.getElementById('overdueBadge').textContent = overdue;
+            document.getElementById('callListBadge').textContent = overdue + dueSoon;
+        }
+
+        function updateSettings() {
+            document.getElementById('settingsVehicleCount').textContent = state.vehicles.length;
+            document.getElementById('settingsOwnerCount').textContent = state.owners.length;
+        }
+
+        // ======================================================
+        // DASHBOARD
+        // ======================================================
+        function renderDashboard() {
+            document.getElementById('statVehicles').textContent = state.vehicles.length;
+            document.getElementById('statOwners').textContent = state.owners.length;
+            document.getElementById('statOverdue').textContent = getOverdueCount();
+            document.getElementById('statDueSoon').textContent = getDueSoonCount();
+            document.getElementById('statFine').textContent = getFineCount();
+
+            // Priority Call List
+            const callList = getPriorityCallList();
+            const container = document.getElementById('priorityCallList');
+
+            if (callList.length === 0) {
+                container.innerHTML =
+                    '<div class="text-muted text-sm text-center" style="padding:20px;">🎉 All services are up to date!</div>';
+                return;
+            }
+
+            // Show top 10
+            const topItems = callList.slice(0, 10);
+            container.innerHTML = topItems.map(item => {
+                const allDue = [...item.overdueRecords, ...item.dueSoonRecords];
+                const status = item.overdueRecords.length > 0 ? 'overdue' : 'due-soon';
+                const statusLabel = getStatusLabel(status);
+
+                return `
+                            <div class="call-item" onclick="showOwner('${item.owner.id}')">
+                                <div class="priority-badge ${status}">
+                                    ${status === 'overdue' ? '🔴' : '🟡'} ${statusLabel}
+                                </div>
+                                <div class="call-info">
+                                    <div class="owner-name">${item.owner.name}</div>
+                                    <div class="vehicle-detail">${item.vehicle.make} ${item.vehicle.model} · ${item.vehicle.plate}</div>
+                                </div>
+                                <div class="call-items">
+                                    ${allDue.slice(0, 5).map(r => `
+                                        <span class="service-tag ${getServiceStatus(r)}">
+                                            <i class="fas ${SERVICE_ICONS[r.serviceName] || 'fa-wrench'}"></i>
+                                            ${r.serviceName}
+                                        </span>
+                                    `).join('')}
+                                    ${allDue.length > 5 ? `<span class="service-tag">+${allDue.length - 5} more</span>` : ''}
+                                </div>
+                                <div class="call-value">${formatCurrency(item.totalValue)}</div>
+                            </div>
+                        `;
+            }).join('');
+        }
+
+        // ======================================================
+        // VEHICLES
+        // ======================================================
+        function renderVehicles() {
+            const search = document.getElementById('vehicleSearch')?.value?.toLowerCase() || '';
+            const statusFilter = document.getElementById('vehicleStatusFilter')?.value || 'all';
+
+            let filtered = [...state.vehicles];
+
+            if (search) {
+                filtered = filtered.filter(v =>
+                    v.plate.toLowerCase().includes(search) ||
+                    v.ownerName.toLowerCase().includes(search) ||
+                    v.make.toLowerCase().includes(search) ||
+                    v.model.toLowerCase().includes(search)
+                );
+            }
+
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(v => {
+                    const records = getRecordsForVehicle(v.id);
+                    const statuses = records.map(r => getServiceStatus(r));
+                    if (statusFilter === 'overdue') return statuses.some(s => s === 'overdue' && !r.isCompleted);
+                    if (statusFilter === 'due-soon') return statuses.some(s => s === 'due-soon' && !r.isCompleted);
+                    if (statusFilter === 'fine') return statuses.every(s => s === 'fine' || r.isCompleted);
+                    return true;
+                });
+            }
+
+            const grid = document.getElementById('vehicleGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML =
+                    '<div class="text-muted text-sm text-center" style="grid-column:1/-1;padding:32px;">No vehicles found</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(v => {
+                const records = getRecordsForVehicle(v.id);
+                const overdue = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'overdue');
+                const dueSoon = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'due-soon');
+
+                return `
+                            <div class="vehicle-card" onclick="showVehicleDetail('${v.id}')">
+                                <div class="vehicle-header">
+                                    <div>
+                                        <div class="vehicle-title">${v.make} ${v.model}</div>
+                                        <div class="vehicle-sub">${v.plate} · ${v.year}</div>
+                                    </div>
+                                    <div style="display:flex;gap:6px;">
+                                        ${overdue.length > 0 ? `<span class="status-dot overdue" title="${overdue.length} overdue"></span>` : ''}
+                                        ${dueSoon.length > 0 ? `<span class="status-dot due-soon" title="${dueSoon.length} due soon"></span>` : ''}
+                                        ${overdue.length === 0 && dueSoon.length === 0 ? `<span class="status-dot fine" title="All up to date"></span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="vehicle-meta">
+                                    <span class="meta-label">Owner</span>
+                                    <span class="meta-value">${v.ownerName}</span>
+                                    <span class="meta-label">Odometer</span>
+                                    <span class="meta-value">${v.odometer.toLocaleString()} km</span>
+                                    <span class="meta-label">Avg. Daily</span>
+                                    <span class="meta-value">${v.avgDailyDistance.toFixed(1)} km/day</span>
+                                    <span class="meta-label">Service Due</span>
+                                    <span class="meta-value">${overdue.length > 0 ? `⚠️ ${overdue.length} overdue` : dueSoon.length > 0 ? `🟡 ${dueSoon.length} soon` : '✅ All fine'}</span>
+                                </div>
+                                <div class="vehicle-status">
+                                    ${records.filter(r => !r.isCompleted).slice(0, 4).map(r => {
+                                        const status = getServiceStatus(r);
+                                        return `<span class="service-tag ${status}" style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--${status === 'overdue' ? 'danger' : status === 'due-soon' ? 'warning' : 'success'}-bg);color:var(--${status === 'overdue' ? 'danger' : status === 'due-soon' ? 'warning' : 'success'});">
+                                            <i class="fas ${SERVICE_ICONS[r.serviceName] || 'fa-wrench'}"></i>
+                                            ${r.serviceName}
+                                        </span>`;
+                                    }).join('')}
+                                    ${records.filter(r => !r.isCompleted).length > 4 ? `<span class="service-tag" style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gray-100);color:var(--text-muted);">+${records.filter(r => !r.isCompleted).length - 4} more</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+            }).join('');
+        }
+
+        // ======================================================
+        // OWNERS
+        // ======================================================
+        function renderOwners() {
+            const container = document.getElementById('ownerList');
+
+            if (state.owners.length === 0) {
+                container.innerHTML =
+                    '<div class="text-muted text-sm text-center" style="padding:32px;">No owners found</div>';
+                return;
+            }
+
+            container.innerHTML = state.owners.map(o => {
+                const vehicles = getVehiclesForOwner(o.id);
+                const records = getRecordsForOwner(o.id);
+                const overdue = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'overdue');
+                const dueSoon = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'due-soon');
+
+                return `
+                            <div class="vehicle-card" onclick="showOwner('${o.id}')" style="cursor:pointer;">
+                                <div class="vehicle-header">
+                                    <div>
+                                        <div class="vehicle-title">${o.name}</div>
+                                        <div class="vehicle-sub"><i class="fas fa-phone"></i> ${o.phone}</div>
+                                    </div>
+                                    <div style="display:flex;gap:6px;align-items:center;">
+                                        <span style="font-size:13px;color:var(--text-muted);">${vehicles.length} vehicles</span>
+                                        ${overdue.length > 0 ? `<span class="status-dot overdue" title="${overdue.length} overdue"></span>` : ''}
+                                        ${dueSoon.length > 0 ? `<span class="status-dot due-soon" title="${dueSoon.length} due soon"></span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="vehicle-meta">
+                                    <span class="meta-label">Email</span>
+                                    <span class="meta-value">${o.email}</span>
+                                    <span class="meta-label">Address</span>
+                                    <span class="meta-value" style="font-size:12px;">${o.address}</span>
+                                </div>
+                                ${vehicles.length > 0 ? `
+                                    <div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+                                        <strong>Vehicles:</strong> ${vehicles.map(v => `${v.make} ${v.model} (${v.plate})`).join(', ')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+            }).join('');
+        }
+
+        // ======================================================
+        // CALL LIST
+        // ======================================================
+        function renderCallList() {
+            const filter = document.getElementById('callListFilter')?.value || 'all';
+            const callList = getPriorityCallList();
+
+            const container = document.getElementById('callListContainer');
+
+            let filtered = callList;
+            if (filter === 'overdue') {
+                filtered = callList.filter(item => item.overdueRecords.length > 0);
+            } else if (filter === 'due-soon') {
+                filtered = callList.filter(item => item.overdueRecords.length === 0 && item.dueSoonRecords.length > 0);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML =
+                    '<div class="text-muted text-sm text-center" style="padding:20px;">No items to display</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const allDue = [...item.overdueRecords, ...item.dueSoonRecords];
+                const status = item.overdueRecords.length > 0 ? 'overdue' : 'due-soon';
+                const statusLabel = getStatusLabel(status);
+                const dueDate = allDue.reduce((latest, r) => r.dueDate < latest.dueDate ? r : latest);
+                const daysToDue = daysBetween(getToday(), dueDate.dueDate);
+
+                return `
+                            <div class="call-item" onclick="showOwner('${item.owner.id}')">
+                                <div class="priority-badge ${status}">
+                                    ${status === 'overdue' ? '🔴' : '🟡'} ${statusLabel}
+                                    ${status === 'overdue' ? `(${Math.abs(daysToDue)} days overdue)` : `(${daysToDue} days)`}
+                                </div>
+                                <div class="call-info">
+                                    <div class="owner-name">${item.owner.name}</div>
+                                    <div class="vehicle-detail">
+                                        <i class="fas fa-phone" style="font-size:11px;"></i> ${item.owner.phone}
+                                        &middot; ${item.vehicle.make} ${item.vehicle.model} (${item.vehicle.plate})
+                                    </div>
+                                </div>
+                                <div class="call-items">
+                                    ${allDue.map(r => `
+                                        <span class="service-tag ${getServiceStatus(r)}">
+                                            <i class="fas ${SERVICE_ICONS[r.serviceName] || 'fa-wrench'}"></i>
+                                            ${r.serviceName}
+                                            <span style="font-size:10px;opacity:0.7;">${formatCurrency(r.cost)}</span>
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                <div class="call-value">${formatCurrency(item.totalValue)}</div>
+                            </div>
+                        `;
+            }).join('');
+        }
+
+        // ======================================================
+        // VEHICLE DETAIL VIEW (Owner Page)
+        // ======================================================
+        function showVehicleDetail(vehicleId) {
+            const vehicle = getVehicle(vehicleId);
+            if (!vehicle) return;
+
+            state.selectedVehicleId = vehicleId;
+            state.selectedOwnerId = vehicle.ownerId;
+
+            // Switch to the vehicles tab and show the detail
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector('[data-page="vehicles"]').classList.add('active');
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('page-vehicles').classList.add('active');
+            document.getElementById('pageTitle').textContent = 'Vehicle Details';
+
+            renderVehicleDetail(vehicle);
+        }
+
+        function renderVehicleDetail(vehicle) {
+            const container = document.getElementById('vehicleGrid');
+            const records = getRecordsForVehicle(vehicle.id);
+            const owner = getOwner(vehicle.ownerId);
+
+            let html = `
+                        <div style="grid-column:1/-1;">
+                            <button class="back-btn" onclick="showVehicles()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;font-weight:500;padding:4px 0;margin-bottom:16px;font-family:inherit;">
+                                <i class="fas fa-arrow-left"></i> Back to Vehicles
+                            </button>
+                            <div class="owner-detail-container">
+                                <div class="owner-header">
+                                    <div>
+                                        <div class="owner-name">${vehicle.make} ${vehicle.model}</div>
+                                        <div style="font-size:14px;color:var(--text-muted);">
+                                            ${vehicle.plate} · ${vehicle.year}
+                                            <span style="margin-left:12px;"><i class="fas fa-user"></i> ${owner.name}</span>
+                                            <span style="margin-left:12px;"><i class="fas fa-phone"></i> ${owner.phone}</span>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:right;">
+                                        <div style="font-size:14px;font-weight:500;">${vehicle.odometer.toLocaleString()} km</div>
+                                        <div class="text-muted text-sm">${vehicle.avgDailyDistance.toFixed(1)} km/day avg</div>
+                                    </div>
+                                </div>
+
+                                <h4 style="font-weight:600;margin-bottom:12px;">Service Items</h4>
+                                <div>
+                                    ${records.map(r => {
+                                        const status = getServiceStatus(r);
+                                        const statusLabel = getStatusLabel(status);
+                                        const days = daysBetween(getToday(), r.dueDate);
+                                        const isOverdue = status === 'overdue';
+
+                                        return `
+                                            <div class="service-item-row" ${r.isCompleted ? 'style="opacity:0.6;"' : ''}>
+                                                <div class="service-name">
+                                                    <i class="fas ${SERVICE_ICONS[r.serviceName] || 'fa-wrench'}"></i>
+                                                    ${r.serviceName}
+                                                </div>
+                                                <div class="service-detail">
+                                                    ${r.isCompleted ? '✅ Completed on ' + formatDate(r.completedDate) : ''}
+                                                    ${!r.isCompleted ? `
+                                                        Due: ${formatDate(r.dueDate)}
+                                                        ${isOverdue ? ` (${Math.abs(days)} days overdue)` : days > 0 ? ` (${days} days)` : ''}
+                                                    ` : ''}
+                                                </div>
+                                                <div class="service-status ${status}">
+                                                    ${r.isCompleted ? 'Completed' : statusLabel}
+                                                </div>
+                                                <div class="service-cost">${formatCurrency(r.cost)}</div>
+                                                ${!r.isCompleted ? `
+                                                    <button class="service-action-btn" onclick="completeService('${r.id}')">
+                                                        <i class="fas fa-check"></i> Complete
+                                                    </button>
+                                                ` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+
+                                <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-color);">
+                                    <h5 style="font-weight:600;margin-bottom:8px;">Service History</h5>
+                                    ${records.filter(r => r.isCompleted).length === 0 ? 
+                                        '<div class="text-muted text-sm">No completed services yet</div>' :
+                                        records.filter(r => r.isCompleted).map(r => `
+                                            <div style="font-size:13px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--border-color);">
+                                                <span style="font-weight:500;">${r.serviceName}</span>
+                                                completed on ${formatDate(r.completedDate)}
+                                                <span style="float:right;">${formatCurrency(r.cost)}</span>
+                                            </div>
+                                        `).join('')
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+            container.innerHTML = html;
+        }
+
+        function showVehicles() {
+            document.getElementById('pageTitle').textContent = 'Vehicles';
+            document.getElementById('pageSubtitle').textContent = 'All Vehicles';
+            renderVehicles();
+        }
+
+        // ======================================================
+        // SHOW OWNER
+        // ======================================================
+        function showOwner(ownerId) {
+            const owner = getOwner(ownerId);
+            if (!owner) return;
+
+            state.selectedOwnerId = ownerId;
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector('[data-page="owners"]').classList.add('active');
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('page-owners').classList.add('active');
+            document.getElementById('pageTitle').textContent = `Owner: ${owner.name}`;
+
+            renderOwnerDetail(owner);
+        }
+
+        function renderOwnerDetail(owner) {
+            const container = document.getElementById('ownerList');
+            const vehicles = getVehiclesForOwner(owner.id);
+
+            let html = `
+                        <button class="back-btn" onclick="showOwnersList()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;font-weight:500;padding:4px 0;margin-bottom:16px;font-family:inherit;">
+                            <i class="fas fa-arrow-left"></i> Back to Owners
+                        </button>
+                        <div class="owner-detail-container">
+                            <div class="owner-header">
+                                <div>
+                                    <div class="owner-name">${owner.name}</div>
+                                    <div style="font-size:14px;color:var(--text-muted);">
+                                        <i class="fas fa-phone"></i> ${owner.phone}
+                                        <span style="margin-left:12px;"><i class="fas fa-envelope"></i> ${owner.email}</span>
+                                    </div>
+                                    <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+                                        <i class="fas fa-map-marker-alt"></i> ${owner.address}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="font-size:14px;font-weight:500;">${vehicles.length} vehicles</span>
+                                </div>
+                            </div>
+
+                            <h4 style="font-weight:600;margin-bottom:12px;">Vehicles</h4>
+                            ${vehicles.map(v => {
+                                const records = getRecordsForVehicle(v.id);
+                                const overdue = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'overdue');
+                                const dueSoon = records.filter(r => !r.isCompleted && getServiceStatus(r) === 'due-soon');
+
+                                return `
+                                    <div class="vehicle-card" onclick="showVehicleDetail('${v.id}')" style="cursor:pointer;margin-bottom:12px;">
+                                        <div class="vehicle-header">
+                                            <div>
+                                                <div class="vehicle-title">${v.make} ${v.model}</div>
+                                                <div class="vehicle-sub">${v.plate} · ${v.year}</div>
+                                            </div>
+                                            <div style="display:flex;gap:6px;">
+                                                ${overdue.length > 0 ? `<span class="status-dot overdue" title="${overdue.length} overdue"></span>` : ''}
+                                                ${dueSoon.length > 0 ? `<span class="status-dot due-soon" title="${dueSoon.length} due soon"></span>` : ''}
+                                                ${overdue.length === 0 && dueSoon.length === 0 ? `<span class="status-dot fine" title="All up to date"></span>` : ''}
+                                            </div>
+                                        </div>
+                                        <div class="vehicle-meta">
+                                            <span class="meta-label">Odometer</span>
+                                            <span class="meta-value">${v.odometer.toLocaleString()} km</span>
+                                            <span class="meta-label">Service Status</span>
+                                            <span class="meta-value">${overdue.length > 0 ? `⚠️ ${overdue.length} overdue` : dueSoon.length > 0 ? `🟡 ${dueSoon.length} soon` : '✅ All fine'}</span>
+                                        </div>
+                                        <div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+                                            ${records.filter(r => !r.isCompleted).slice(0, 5).map(r => {
+                                                const status = getServiceStatus(r);
+                                                return `<span class="service-tag ${status}" style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--${status === 'overdue' ? 'danger' : status === 'due-soon' ? 'warning' : 'success'}-bg);color:var(--${status === 'overdue' ? 'danger' : status === 'due-soon' ? 'warning' : 'success'});">
+                                                    ${r.serviceName}
+                                                </span>`;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+
+            container.innerHTML = html;
+        }
+
+        function showOwnersList() {
+            document.getElementById('pageTitle').textContent = 'Owners';
+            document.getElementById('pageSubtitle').textContent = 'Vehicle Owners';
+            renderOwners();
+        }
+
+        // ======================================================
+        // SERVICE COMPLETION
+        // ======================================================
+        function completeService(recordId) {
+            const record = state.serviceRecords.find(r => r.id === recordId);
+            if (!record) return;
+
+            const today = getToday();
+            record.isCompleted = true;
+            record.completedDate = today;
+
+            // Get the vehicle
+            const vehicle = getVehicle(record.vehicleId);
+            if (vehicle) {
+                // Update odometer (simulate some additional driving)
+                const additionalKm = randomNumber(50, 500);
+                vehicle.odometer += additionalKm;
+                // Update average daily distance
+                const daysSinceReg = daysBetween(vehicle.registrationDate, today) || 1;
+                vehicle.avgDailyDistance = Math.round(vehicle.odometer / daysSinceReg * 10) / 10;
+            }
+
+            // Reset the service (create a new record for the next cycle)
+            const template = SERVICE_TEMPLATES[record.serviceName];
+            let newDueDate = null;
+            let lastPerformed = today;
+
+            if (template.type === 'fixed-date') {
+                const regDate = new Date(vehicle.registrationDate);
+                const currentYear = new Date().getFullYear();
+                const dueYear = currentYear + (new Date().getMonth() > regDate.getMonth() ? 1 : 0);
+                newDueDate =
+                    `${dueYear}-${String(regDate.getMonth()+1).padStart(2,'0')}-${String(regDate.getDate()).padStart(2,'0')}`;
+            } else if (template.type === 'time') {
+                newDueDate = addDays(today, template.timeInterval);
+            } else if (template.type === 'distance') {
+                const currentOdometer = vehicle.odometer;
+                const nextOdometer = Math.ceil(currentOdometer / template.distanceInterval) * template.distanceInterval +
+                    template.distanceInterval;
+                const kmToGo = nextOdometer - currentOdometer;
+                if (vehicle.avgDailyDistance > 0) {
+                    const daysToGo = Math.ceil(kmToGo / vehicle.avgDailyDistance);
+                    newDueDate = addDays(today, daysToGo);
+                } else {
+                    newDueDate = addDays(today, 90);
+                }
+            } else if (template.type === 'time-distance') {
+                const timeDue = addDays(today, template.timeInterval);
+                const currentOdometer = vehicle.odometer;
+                const nextOdometer = Math.ceil(currentOdometer / template.distanceInterval) * template.distanceInterval +
+                    template.distanceInterval;
+                const kmToGo = nextOdometer - currentOdometer;
+                let distanceDue = addDays(today, Math.ceil(kmToGo / vehicle.avgDailyDistance));
+                if (vehicle.avgDailyDistance === 0) distanceDue = timeDue;
+                newDueDate = timeDue < distanceDue ? timeDue : distanceDue;
+            }
+
+            if (!newDueDate) newDueDate = addDays(today, 90);
+
+            // Create new service record
+            state.serviceRecords.push({
+                id: generateRecordId(),
+                vehicleId: record.vehicleId,
+                serviceName: record.serviceName,
+                lastPerformed: lastPerformed,
+                dueDate: newDueDate,
+                cost: Math.round(template.cost * (0.85 + Math.random() * 0.3)),
+                isCompleted: false,
+                completedDate: null,
+                odometerAtService: vehicle.odometer,
+            });
+
+            showToast(`✅ ${record.serviceName} completed and reset!`, 'success');
+            renderAll();
+
+            // If viewing a vehicle detail, re-render it
+            if (state.selectedVehicleId) {
+                const v = getVehicle(state.selectedVehicleId);
+                if (v) renderVehicleDetail(v);
+            }
+            if (state.selectedOwnerId) {
+                const o = getOwner(state.selectedOwnerId);
+                if (o) renderOwnerDetail(o);
+            }
+        }
+
+        // ======================================================
+        // NAVIGATION
+        // ======================================================
+        document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                const page = item.dataset.page;
+                document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+
+                const titles = {
+                    'dashboard': 'Dashboard',
+                    'vehicles': 'Vehicles',
+                    'owners': 'Owners',
+                    'call-list': 'Call List',
+                    'settings': 'Settings'
+                };
+                document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+                document.getElementById('pageSubtitle').textContent = page === 'dashboard' ? 'Vehicle Service Due Predictor' :
+                    '';
+
+                // Close mobile sidebar
+                document.getElementById('sidebar').classList.remove('open');
+
+                // Refresh data
+                if (page === 'dashboard') renderDashboard();
+                if (page === 'vehicles') renderVehicles();
+                if (page === 'owners') renderOwners();
+                if (page === 'call-list') renderCallList();
+            });
+        });
+
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // ======================================================
+        // THEME TOGGLE
+        // ======================================================
+        let isDark = false;
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDark = !isDark;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            document.getElementById('themeLabel').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+        });
+
+        // ======================================================
+        // SEARCH & FILTER
+        // ======================================================
+        document.getElementById('vehicleSearch')?.addEventListener('input', renderVehicles);
+        document.getElementById('vehicleStatusFilter')?.addEventListener('change', renderVehicles);
+        document.getElementById('callListFilter')?.addEventListener('change', renderCallList);
+
+        // ======================================================
+        // MODAL
+        // ======================================================
+        function openModal(title, bodyHTML) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = bodyHTML;
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // ======================================================
+        // ADD VEHICLE
+        // ======================================================
+        document.getElementById('addVehicleBtn').addEventListener('click', () => {
+            const ownerOptions = state.owners.map(o =>
+                `<option value="${o.id}">${o.name}</option>`
+            ).join('');
+
+            openModal('Add Vehicle', `
+                        <form id="addVehicleForm" onsubmit="addVehicle(event)">
+                            <div class="form-group">
+                                <label>Owner</label>
+                                <select id="vehicleOwner" required>
+                                    ${ownerOptions}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Make</label>
+                                <input type="text" id="vehicleMake" placeholder="e.g., Toyota" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Model</label>
+                                <input type="text" id="vehicleModel" placeholder="e.g., Corolla" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <input type="number" id="vehicleYear" placeholder="2020" required min="2000" max="2025" />
+                            </div>
+                            <div class="form-group">
+                                <label>License Plate</label>
+                                <input type="text" id="vehiclePlate" placeholder="e.g., BD-12-3456" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Odometer Reading (km)</label>
+                                <input type="number" id="vehicleOdometer" placeholder="0" required min="0" />
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="btn-primary">Add Vehicle</button>
+                            </div>
+                        </form>
+                    `);
+        });
+
+        window.addVehicle = function(e) {
+            e.preventDefault();
+            const ownerId = parseInt(document.getElementById('vehicleOwner').value);
+            const make = document.getElementById('vehicleMake').value.trim();
+            const model = document.getElementById('vehicleModel').value.trim();
+            const year = parseInt(document.getElementById('vehicleYear').value);
+            const plate = document.getElementById('vehiclePlate').value.trim();
+            const odometer = parseInt(document.getElementById('vehicleOdometer').value);
+
+            if (!ownerId || !make || !model || !year || !plate || !odometer) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            const owner = getOwner(ownerId);
+            if (!owner) {
+                showToast('Invalid owner selected', 'error');
+                return;
+            }
+
+            const today = getToday();
+            const vehicle = {
+                id: generateId(),
+                ownerId: ownerId,
+                ownerName: owner.name,
+                make: make,
+                model: model,
+                year: year,
+                registrationDate: today,
+                plate: plate,
+                odometer: odometer,
+                avgDailyDistance: 0,
+                lastServiceDate: today,
+            };
+
+            state.vehicles.push(vehicle);
+
+            // Generate service records for the new vehicle
+            const records = generateServiceRecords(vehicle);
+            state.serviceRecords.push(...records);
+
+            closeModal();
+            showToast(`✅ Vehicle ${make} ${model} added successfully!`, 'success');
+            renderAll();
+
+            // Switch to vehicles view
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector('[data-page="vehicles"]').classList.add('active');
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('page-vehicles').classList.add('active');
+            document.getElementById('pageTitle').textContent = 'Vehicles';
+            renderVehicles();
+        };
+
+        // ======================================================
+        // ADD OWNER
+        // ======================================================
+        document.getElementById('addOwnerBtn').addEventListener('click', () => {
+            openModal('Add Owner', `
+                        <form id="addOwnerForm" onsubmit="addOwner(event)">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="ownerName" placeholder="e.g., Mohammad Ali" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="text" id="ownerPhone" placeholder="e.g., 01712345678" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="ownerEmail" placeholder="email@example.com" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Address</label>
+                                <input type="text" id="ownerAddress" placeholder="City, Bangladesh" required />
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="btn-primary">Add Owner</button>
+                            </div>
+                        </form>
+                    `);
+        });
+
+        window.addOwner = function(e) {
+            e.preventDefault();
+            const name = document.getElementById('ownerName').value.trim();
+            const phone = document.getElementById('ownerPhone').value.trim();
+            const email = document.getElementById('ownerEmail').value.trim();
+            const address = document.getElementById('ownerAddress').value.trim();
+
+            if (!name || !phone || !email || !address) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            state.owners.push({
+                id: generateOwnerId(),
+                name: name,
+                phone: phone,
+                email: email,
+                address: address,
+            });
+
+            closeModal();
+            showToast(`✅ Owner ${name} added successfully!`, 'success');
+            renderAll();
+        };
+
+        // ======================================================
+        // TOAST
+        // ======================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ======================================================
+        // RESPONSIVE: Close sidebar on outside click
+        // ======================================================
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('menuToggle');
+            if (window.innerWidth <= 768 &&
+                sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) &&
+                !toggle.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // ======================================================
+        // INIT
+        // ======================================================
+        initializeData();
+
+        console.log('🔧 P09 Vehicle Service Due Predictor loaded!');
+        console.log(`📊 ${state.vehicles.length} vehicles, ${state.owners.length} owners, ${state.serviceRecords.length} service records`);
+    </script>
+</body>
+</html>
